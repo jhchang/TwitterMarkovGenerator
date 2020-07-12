@@ -101,7 +101,7 @@ def retrieveRandomWord(wordList):
         if randIndex <= 0:
             return word
 
-scrapeTweetsIntoFile("realDonaldTrump", 50)
+scrapeTweetsIntoFile("realDonaldTrump", 500)
 f = io.open(fileName, mode="r", encoding="utf-8")
 wordDict = buildWordDict(f.read())
 print(wordDict)
