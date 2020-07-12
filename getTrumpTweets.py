@@ -73,7 +73,7 @@ def buildWordDict(text):
 
     words = text.split(' ')
     # Filter out empty words
-    words = [word for word in words if word != '']
+    words = [word.lower() for word in words if word != '']
 
     print("txt file after stripping:\n" + text)
     print("="*20)
@@ -108,7 +108,7 @@ print(wordDict)
 print("="*20)
 
 length = 100
-chain = ['I']
+chain = ['i']
 for i in range(0, length):
     newWord = retrieveRandomWord(wordDict[chain[-1]])
     chain.append(newWord)
