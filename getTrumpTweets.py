@@ -1,6 +1,7 @@
 import tweepy
 import io
 import re
+import string
 from random import randint, choice
 from datetime import datetime
 from config import *
@@ -12,7 +13,11 @@ auth.set_access_token(access_token, access_token_secret)
 # Creating the API object while passing in auth information
 api = tweepy.API(auth) 
 
-SEPERATOR = '^~seperator~^'
+SEPERATOR = '^~SEPERATOR~^'
+TWITTERUSERNAME = 'realDonaldTrump'
+NUMTWEETSSCRAPED = 500
+LENGTHOFCHAIN = 100
+STARTINGWORD = 'I'
 
 def getDate():
     now = datetime.now()
@@ -68,19 +73,22 @@ def buildWordDict(text):
 
     # Make sure punctuation marks are treated as their own "words,"
     # so that they will be included in the Markov chain
-    punctuation = [',','.',';',':','?','!']
+    punctuation = ['.',';',':','?','!']
     for symbol in punctuation:
         text = text.replace(symbol, ' {} '.format(symbol));
+    text = re.sub(r'(\D)(,)(\D)', r'\1 , \3', text)
 
     words = text.split(' ')
     # Filter out empty words
-    words = [word.lower() for word in words if word != '']
+    words = [word.upper() for word in words if word != '']
 
     words = list(splitOnSep(words, SEPERATOR))
 
     print("txt file postprocessing:\n")
     print(words)
     print("="*20)
+
+    countWordsInTweets(words)
 
     wordDict = {}
     for sentence in words:
@@ -93,6 +101,29 @@ def buildWordDict(text):
             wordDict[sentence[i-1]][sentence[i]] += 1
     
     return wordDict
+
+def countWordsInTweets(words):
+    wordCountFile = open("wordCount/wordCount" + getDate() + ".txt", "x+")
+    wordfreq = {}
+    for sentence in words:
+        for word in sentence:
+            if (isSignificantWord(word)):
+                if (word not in wordfreq):
+                    wordfreq[word] = 0
+                wordfreq[word] += 1
+    wordfreq = {k: v for k, v in sorted(wordfreq.items(), key=lambda item: item[1], reverse = True)}
+    for key, value in wordfreq.items():
+        line = '{:<18}  {:<18}\n'.format(str(key), str(value))
+        wordCountFile.write(line)
+    wordCountFile.close()
+
+def isSignificantWord(word):
+    commonWords = ['THE', 'BE', 'AND', 'OF', 'A', 'IN', 'TO', 'HAVE', 'IT', 'I', 'THAT', 'FOR', 'YOU', 'HE', 'WITH', 'ON', 'DO', 'SAY', 'THIS', 'THEY', 'IS', 'AN', 'AT', 'BUT', 'WE', 'HIS', 'FROM', 'THAT', 'NOT', 'BY', 'SHE', 'OR', 'AS', 'WHAT', 'GO', 'THEIR', 'CAN', 'WHO', 'GET', 'IF', 'WOULD', 'HER', 'ALL', 'MY', 'MAKE', 'ABOUT', 'KNOW', 'WILL', 'AS', 'UP', 'ONE', 'HAS', 'BEEN', 'THERE', 'YEAR', 'SO', 'THINK', 'WHEN', 'WHICH', 'THEM', 'ME', 'OUT', 'INTO', 'JUST', 'SEE', 'HIM', 'YOUR', 'COME', 'COULD', 'NOW', 'THAN', 'LIKE', 'OTHER', 'HOW', 'THEN', 'ITS', 'OUR', 'TWO', 'MORE', 'THESE', 'WANT', 'WAY', 'LOOK', 'FIRST', 'ALSO', 'NEW', 'BECAUSE', 'DAY', 'MORE', 'USE', 'NO', 'MAN', 'FIND', 'HERE', 'THING', 'GIVE', 'ARE', 'WAS', 'GOT']
+    if (word not in commonWords and
+        word not in string.punctuation and
+        word not in string.whitespace):
+        return True
+    return False
 
 def wordListSum(wordList):
     sum = 0
@@ -117,14 +148,14 @@ def splitOnSep(seq, sep):
             chunk.append(val)
     yield chunk
 
-scrapeTweetsIntoFile("realDonaldTrump", 500)
+scrapeTweetsIntoFile(TWITTERUSERNAME, NUMTWEETSSCRAPED)
 f = io.open(fileName, mode="r", encoding="utf-8")
 wordDict = buildWordDict(f.read())
 print(wordDict)
 print("="*20)
 
-length = 100
-chain = ['i']
+length = LENGTHOFCHAIN
+chain = [STARTINGWORD]
 for i in range(0, length):
     try:
         newWord = retrieveRandomWord(wordDict[chain[-1]])
