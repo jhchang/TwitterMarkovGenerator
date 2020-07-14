@@ -1,7 +1,7 @@
 import tweepy
 import io
 import re
-from random import randint
+from random import randint, choice
 from datetime import datetime
 from config import *
 
@@ -12,7 +12,7 @@ auth.set_access_token(access_token, access_token_secret)
 # Creating the API object while passing in auth information
 api = tweepy.API(auth) 
 
-
+SEPERATOR = '^~seperator~^'
 
 def getDate():
     now = datetime.now()
@@ -38,7 +38,7 @@ def scrapeTweetsIntoFile(twitHandle, tweet_count):
             status = api.get_status(tweet.id, tweet_mode="extended")
             try:
                 #print(status.full_text + "\n")
-                trumpTweets.write(status.full_text + "\n")
+                trumpTweets.write(status.full_text + "\n" + SEPERATOR + "\n")
             except:
                 print("Something went wrong when writing to the file")
                 trumpTweets.close()
@@ -64,6 +64,7 @@ def buildWordDict(text):
     for x, y in zip(olist, rlist):
         text = text.replace(x,y)
 
+    text = re.sub('[?!.] ', ' ' + SEPERATOR + ' ', text)
 
     # Make sure punctuation marks are treated as their own "words,"
     # so that they will be included in the Markov chain
@@ -75,17 +76,22 @@ def buildWordDict(text):
     # Filter out empty words
     words = [word.lower() for word in words if word != '']
 
-    print("txt file after stripping:\n" + text)
+    words = list(splitOnSep(words, SEPERATOR))
+
+    print("txt file postprocessing:\n")
+    print(words)
     print("="*20)
 
     wordDict = {}
-    for i in range(1, len(words)):
-        if words[i-1] not in wordDict:
-                # Create a new dictionary for this word
-            wordDict[words[i-1]] = {}
-        if words[i] not in wordDict[words[i-1]]:
-            wordDict[words[i-1]][words[i]] = 0
-        wordDict[words[i-1]][words[i]] += 1
+    for sentence in words:
+        for i in range(1, len(sentence)):
+            if sentence[i-1] not in wordDict:
+                    # Create a new dictionary for this word
+                wordDict[sentence[i-1]] = {}
+            if sentence[i] not in wordDict[sentence[i-1]]:
+                wordDict[sentence[i-1]][sentence[i]] = 0
+            wordDict[sentence[i-1]][sentence[i]] += 1
+    
     return wordDict
 
 def wordListSum(wordList):
@@ -101,6 +107,16 @@ def retrieveRandomWord(wordList):
         if randIndex <= 0:
             return word
 
+def splitOnSep(seq, sep):
+    chunk = []
+    for val in seq:
+        if val == sep:
+            yield chunk
+            chunk = []
+        else:
+            chunk.append(val)
+    yield chunk
+
 scrapeTweetsIntoFile("realDonaldTrump", 500)
 f = io.open(fileName, mode="r", encoding="utf-8")
 wordDict = buildWordDict(f.read())
@@ -110,7 +126,12 @@ print("="*20)
 length = 100
 chain = ['i']
 for i in range(0, length):
-    newWord = retrieveRandomWord(wordDict[chain[-1]])
+    try:
+        newWord = retrieveRandomWord(wordDict[chain[-1]])
+    except:
+        newWord = choice(list(wordDict))
+        print('***A RANDOM WORD WAS PICKED DUE TO REACHING THE END OF A CHAIN***')
+    print("newWord: " + newWord)
     chain.append(newWord)
 
 markovChain = ' '.join(chain)
