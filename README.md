@@ -9,3 +9,7 @@ I scraped.
 
 A file is also generated when this program is run that contains a count of all
 significant words contained in tweets.
+
+This project contains references to API keys referenced in a file that isn't
+uploaded to git. If you have your own twitter api keys you can use those to
+test out the program.
